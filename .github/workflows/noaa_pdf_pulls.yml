@@ -1,14 +1,11 @@
 name: Download PDFs with RSelenium
 
 on:
-  push:
-    branches:
-      - main  
   workflow_dispatch: 
 
 jobs:
   download-pdfs:
-    runs-on: ubuntu-latest  
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
     
     steps:
     # Step 1: Checkout the repository code
@@ -17,7 +14,7 @@ jobs:
 
     # Step 2: Set up R
     - name: Set up R
-      uses: rocker/r-ver@v4.2  
+      uses: rocker/r-ver@v4.2  # Set the R version (adjust if needed)
 
     # Step 3: Install necessary R libraries
     - name: Install R dependencies
@@ -39,10 +36,7 @@ jobs:
         # Start Docker container with Selenium and Chrome
         sudo docker run -d -p 4444:4444 selenium/standalone-chrome:latest
 
-        # Pull the metadata.csv file from the repo (it should already be in the repo's root directory)
-        cp metadata.csv /home/runner/work/$GITHUB_REPOSITORY/$GITHUB_SHA/
-
-        # Run the R script to download PDFs
+        # Run the R script to download PDFs (ensure the script is named `download_pdfs.R`)
         Rscript download_pdfs.R
 
         # Stop the Selenium container
