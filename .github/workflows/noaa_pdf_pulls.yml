@@ -29,9 +29,12 @@ jobs:
         Rscript -e "install.packages(c('RSelenium', 'dplyr'))"
 
     # Step 4: Install Docker and Chrome (for Selenium)
-    - name: Install Docker
+    - name: Install Docker and resolve conflicts
       run: |
         sudo apt-get update
+        # Remove existing containerd and docker packages that may conflict
+        sudo apt-get remove -y containerd containerd.io docker docker-engine docker.io
+        # Install Docker
         sudo apt-get install -y docker.io
         sudo systemctl enable --now docker
 
