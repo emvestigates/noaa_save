@@ -3,6 +3,11 @@ name: Download PDFs with RSelenium
 on:
   workflow_dispatch: 
 
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
 jobs:
   download-pdfs:
     runs-on: ubuntu-latest  # Use the latest Ubuntu runner
@@ -14,7 +19,7 @@ jobs:
 
     # Step 2: Set up R
     - name: Set up R
-      uses: rocker/r-ver@v4.2  # Set the R version (adjust if needed)
+      uses: r-lib/actions/setup-r@v2
 
     # Step 3: Install necessary R libraries
     - name: Install R dependencies
