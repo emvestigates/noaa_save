@@ -6,7 +6,7 @@ metadata <- read.csv("noaa_urls.csv")  # Ensure the file is located in the curre
 urls <- metadata$dc.identifier
 
 # Initialize RSelenium (Start the browser)
-driver <- rsDriver(browser = "chrome", port = 4444, chromever = "latest")
+driver <- rsDriver(browser = "chrome", port = as.integer(4444), chromever = "latest")
 remote_driver <- driver[["client"]]
 
 # Function to click the button and download the PDF
