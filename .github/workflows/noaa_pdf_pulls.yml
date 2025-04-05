@@ -5,6 +5,11 @@ on:
     branches:
       - main  # Trigger action on push to main branch
   workflow_dispatch: # Allow manual trigger for the workflow
+    
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
 
 jobs:
   download-pdfs:
