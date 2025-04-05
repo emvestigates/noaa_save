@@ -1,12 +1,10 @@
 name: Download PDFs with RSelenium
 
 on:
-  workflow_dispatch: 
-
-permissions:
-  contents: write
-  packages: write
-  pull-requests: write
+  push:
+    branches:
+      - main  # Trigger action on push to main branch
+  workflow_dispatch: # Allow manual trigger for the workflow
 
 jobs:
   download-pdfs:
@@ -17,9 +15,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    # Step 2: Set up R
+    # Step 2: Set up R using r-lib/setup-r
     - name: Set up R
       uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.1'  # Specify the R version you want (use '4.1' or other stable versions)
 
     # Step 3: Install necessary R libraries
     - name: Install R dependencies
@@ -28,7 +28,7 @@ jobs:
         sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
         Rscript -e "install.packages(c('RSelenium', 'dplyr'))"
 
-    # Step 4: Install Docker and Chrome (for Selenium)
+    # Step 4: Fix Docker installation issues (remove any conflicting containerd packages)
     - name: Install Docker and resolve conflicts
       run: |
         sudo apt-get update
@@ -50,11 +50,25 @@ jobs:
         # Stop the Selenium container
         sudo docker stop $(sudo docker ps -q --filter ancestor=selenium/standalone-chrome)
 
-    # Step 6: Commit the downloaded PDFs to the repository
+    # Step 6: Check if PDFs were downloaded, then commit the files
     - name: Commit and push downloaded PDFs
       run: |
+        # Ensure PDF files are in the 'pdfs/' folder
+        mkdir -p pdfs
+
+        # Move the downloaded PDFs to the 'pdfs/' folder
+        mv *.pdf pdfs/  # Adjust if your PDFs are downloaded elsewhere
+
+        # Check if there are any changes
+        git status
+
+        # Add the PDFs to the Git repository
+        git add pdfs/
+
+        # Configure Git user for the commit
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-        git add pdfs/
+
+        # Commit and push the changes
         git commit -m "Add downloaded PDFs"
         git push
