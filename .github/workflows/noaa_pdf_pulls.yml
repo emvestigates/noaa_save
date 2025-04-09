@@ -1,89 +1,50 @@
-name: Download PDFs with RSelenium
+name: Download PDFs using RSelenium
 
 on:
-  push:
-  workflow_dispatch: # Allow manual trigger for the workflow
-    
-permissions:
-  contents: write
-  packages: write
-  pull-requests: write
+  workflow_dispatch:
 
 jobs:
   download-pdfs:
-    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
-    
+    runs-on: ubuntu-latest
     steps:
-    # Step 1: Checkout the repository code
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    # Step 2: Set up R using r-lib/setup-r
-    - name: Set up R
-      uses: r-lib/actions/setup-r@v2
-      with:
-        r-version: '4.1'  # Specify the R version you want (use '4.1' or other stable versions)
+      - name: Set up R
+        uses: rocker/r-ver@v4.0
+        with:
+          r-version: '4.0.0'
 
-    # Step 3: Install necessary R libraries
-    - name: Install R dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
-        Rscript -e "install.packages(c('RSelenium', 'dplyr'))"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            docker.io \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libxml2-dev
+          R -e "install.packages('RSelenium')"
+          R -e "install.packages('dplyr')"
 
-    # Step 4: Fix Docker installation issues (remove any conflicting containerd packages)
-    - name: Install Docker and resolve conflicts
-      run: |
-        sudo apt-get update
-        # Remove existing containerd and docker packages that may conflict
-        sudo apt-get remove -y containerd containerd.io docker docker-engine docker.io
-        # Install Docker
-        sudo apt-get install -y docker.io
-        sudo systemctl enable --now docker
+      - name: Run Selenium Docker Container
+        run: |
+          # Start Docker container with Selenium and Chrome
+          sudo docker run -d -p 4444:4444 -v ${{ github.workspace }}/pdfs:/home/selenium/pdfs selenium/standalone-chrome:latest
+          
+      - name: Run R script to download PDFs
+        run: |
+          Rscript download_pdfs.R
 
-    # Step 5: Run RSelenium to download PDFs
-    - name: Run RSelenium to download PDFs
-      run: |
-        # Start Docker container with Selenium and Chrome
-        sudo docker run -d -p 4444:4444 selenium/standalone-chrome:latest
+      - name: List downloaded PDFs
+        run: |
+          ls -l ${{ github.workspace }}/pdfs
 
-        # Run the R script to download PDFs (ensure the script is named `download_pdfs.R`)
-        Rscript download_pdfs.R
-
-        # Stop the Selenium container
-        sudo docker stop $(sudo docker ps -q --filter ancestor=selenium/standalone-chrome)
-
-    # Step 6: Debugging - List files to check if PDFs were downloaded
-    - name: List downloaded files
-      run: |
-        echo "Files in the current directory:"
-        ls -l
-
-    # Step 7: Ensure PDFs are in the 'pdfs/' folder
-    - name: Ensure PDFs are in the 'pdfs/' folder
-      run: |
-        mkdir -p pdfs
-
-        # Move the downloaded PDFs to the 'pdfs/' folder
-        mv *.pdf pdfs/  # Adjust if your PDFs are downloaded elsewhere
-
-        # List files to ensure the PDFs are moved correctly
-        echo "Files in pdfs/ folder after moving:"
-        ls pdfs/
-
-    # Step 8: Check Git status and commit the PDFs if there are changes
-    - name: Commit and push downloaded PDFs
-      run: |
-        # Check for changes
-        git status
-
-        # Add the PDFs to the Git repository
-        git add pdfs/
-
-        # Configure Git user for the commit
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-
-        # Commit and push the changes if there are changes
-        git commit -m "Add downloaded PDFs" || echo "No changes to commit."
-        git push
+      - name: Commit and push PDFs to repo
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'pdfs/*'
+          message: 'Add downloaded PDFs'
+          author_name: 'GitHub Actions'
+          author_email: 'actions@github.com'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
